@@ -1,0 +1,12 @@
+.page-heading {
+    text-align: center;
+}
+
+.page-heading:after {
+    content: '';
+    display: block;
+    background: orangered;
+    height: 3px;
+    width: 108px;
+    margin: 0.5em auto;
+}

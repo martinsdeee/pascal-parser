@@ -11,6 +11,9 @@
 |
 */
 
-$app->get('/', function() use ($app) {
-    return $app->welcome();
+$app->group(['namespace' => 'App\Http\Controllers'], function($group) {
+
+    $group->get('/', 'ParseController@index');
+    $group->post('/', 'ParseController@store');
+
 });
