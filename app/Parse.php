@@ -11,6 +11,33 @@ class Parse {
 
     protected $codeTable;
 
+    protected $errors = [];
+
+    /**
+     * @return array
+     */
+    public function getErrors()
+    {
+        return $this->errors;
+    }
+
+
+    protected $patterns = [
+        'for' => [
+            'keyword',
+            'variable',
+            'splitter',
+            'variable',
+            'keyword',
+            /*
+
+             '*',
+            'do',
+            '*',
+
+            */
+        ]
+    ];
 
     protected $language_keywords = [
         'procedure', 'TObject', 'var',
@@ -39,6 +66,13 @@ class Parse {
     ];
 
     protected $keywords = [];
+
+
+    protected $splitters = [];
+
+    protected $variables = [];
+
+    protected $literals = [];
 
     /**
      * @return array
@@ -72,18 +106,13 @@ class Parse {
         return $this->literals;
     }
 
-    protected $splitters = [];
-
-    protected $variables = [];
-
-    protected $literals = [];
-
     public function create($code)
     {
         $this->setCode($code);
         $this->setRaw($code);
         $this->setCodeTable($this->rawCode);
         $this->createTypeTables($this->rawCodeTable);
+        $this->checkSyntax($this->codeTable);
     }
 
     /**
@@ -173,6 +202,9 @@ class Parse {
             {
                 $string = true;
                 $openStep = $i;
+                $this->addAsSplitter($chunk);
+                $elementId = $this->getElementId($this->splitters, $chunk);
+                $this->addCodeTableAs('splitter', $chunk, $elementId);
             }
             // Pārbauda vai netiek aizvērts brīvais teksts
             if ($chunk == "'" && $string && $openStep !== $i) {
@@ -292,6 +324,21 @@ class Parse {
             'type' => $string,
             'type_id' => $elementId
         ];
+    }
+
+    private function checkSyntax($codeTable)
+    {
+        $i = 0;
+        $j = 0;
+        // Hard coded for my lab example
+        foreach($this->patterns['for'] as $value)
+        {
+            if($value !== $codeTable[$i]['type'])
+            {
+                $this->errors[] = "syntax error in $i step";
+            }
+            $i++;
+        }
     }
 
 

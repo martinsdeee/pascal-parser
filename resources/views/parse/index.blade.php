@@ -13,8 +13,8 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
         <form method="POST">
         <!-- Code Field -->
         <div class="form-group">
-            <label for="code">Code</label>
-            <textarea name="code" class="form-control" cols="30" rows="10" required>{{$code}}</textarea>
+            <label for="code">Kods</label>
+            <textarea name="code" class="form-control" cols="30" rows="3" required>{{$code}}</textarea>
         </div>
         <!-- Submit Field -->
         <div class="form-group text-center row">
@@ -25,14 +25,27 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
         </form>
     </div>
 </div>
+
+
+@if(isset($errors) && count($errors)>0)
+    <div class="row">
+        <div class="col-sm-6 col-sm-offset-3">
+            <div class="alert alert-danger text-center">
+                @foreach($errors as $error)
+                    <li>{{$error}}</li>
+                @endforeach
+            </div>
+        </div>
+    </div>
+@endif
 @if(isset($keywords) && count($keywords)>0)
     <div class="row">
         <div class="col-sm-6 col-sm-offset-3">
-            <strong>Keywords table</strong>
+            <strong>Atslēgvārdu tabula (keywords)</strong>
             <table class="table table-bordered table-hover">
                 <thead>
                     <th>#</th>
-                    <th>Element</th>
+                    <th>Leksēma</th>
                 </thead>
                 <tbody>
                     @foreach($keywords as $key => $value)
@@ -49,11 +62,11 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
 @if(isset($splitters) && count($splitters)>0)
     <div class="row">
         <div class="col-sm-6 col-sm-offset-3">
-            <strong>Splitters table</strong>
+            <strong>Atdalītāju tabula (splitters)</strong>
             <table class="table table-bordered table-hover">
                 <thead>
                 <th>#</th>
-                <th>Element</th>
+                <th>Leksēma</th>
                 </thead>
                 <tbody>
                 @foreach($splitters as $key => $value)
@@ -70,11 +83,11 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
 @if(isset($literals) && count($literals)>0)
     <div class="row">
         <div class="col-sm-6 col-sm-offset-3">
-            <strong>Literals table</strong>
+            <strong>Literāļu tabula (literals)</strong>
             <table class="table table-bordered table-hover">
                 <thead>
                 <th>#</th>
-                <th>Element</th>
+                <th>Leksēma</th>
                 </thead>
                 <tbody>
                 @foreach($literals as $key => $value)
@@ -91,11 +104,11 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
 @if(isset($variables) && count($variables)>0)
     <div class="row">
         <div class="col-sm-6 col-sm-offset-3">
-            <strong>Variables table</strong>
+            <strong>Mainīgo tabula (variables)</strong>
             <table class="table table-bordered table-hover">
                 <thead>
                 <th>#</th>
-                <th>Element</th>
+                <th>Leksēma</th>
                 </thead>
                 <tbody>
                 @foreach($variables as $key => $value)
@@ -112,13 +125,13 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
 @if(isset($codeTable))
     <div class="row">
         <div class="col-sm-6 col-sm-offset-3">
-            <strong>Code table</strong>
+            <strong>Leksēmu tabula</strong>
             <table class="table table-bordered table-hover">
                 <thead>
                     <th>#</th>
-                    <th>Element</th>
-                    <th>Type</th>
-                    <th>Type #</th>
+                    <th>Leksēma</th>
+                    <th>Tips</th>
+                    <th>Tipa #</th>
                 </thead>
                 <tbody>
                     @foreach($codeTable as $key => $value)

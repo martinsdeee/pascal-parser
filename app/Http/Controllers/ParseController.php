@@ -20,9 +20,11 @@ class ParseController extends Controller {
         $literals = $parse->getLiterals();
         $variables = $parse->getVariables();
         $codeTable = $parse->getCodeTable();
-
+        $errors = $parse->getErrors();
         //dd($parse);
-        return view('parse.index', compact(['keywords','splitters','literals','variables','codeTable']));
+        return view('parse.index', compact(
+            ['keywords','splitters','literals','variables','codeTable', 'errors']
+        ));
     }
     
 }
