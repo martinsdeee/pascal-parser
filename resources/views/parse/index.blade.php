@@ -30,7 +30,7 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
 @if(isset($errors) && count($errors)>0)
     <div class="row">
         <div class="col-sm-6 col-sm-offset-3">
-            <div class="alert alert-danger text-center">
+            <div class="alert alert-danger">
                 @foreach($errors as $error)
                     <li>{{$error}}</li>
                 @endforeach
@@ -38,9 +38,11 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
         </div>
     </div>
 @endif
+<div class="row">
+    <div class="col-sm-6 col-sm-offset-3">
+        <div class="row">
 @if(isset($keywords) && count($keywords)>0)
-    <div class="row">
-        <div class="col-sm-6 col-sm-offset-3">
+        <div class="col-sm-6">
             <strong>Atslēgvārdu tabula (keywords)</strong>
             <table class="table table-bordered table-hover">
                 <thead>
@@ -57,11 +59,9 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
                 </tbody>
             </table>
         </div>
-    </div>
 @endif
 @if(isset($splitters) && count($splitters)>0)
-    <div class="row">
-        <div class="col-sm-6 col-sm-offset-3">
+        <div class="col-sm-6">
             <strong>Atdalītāju tabula (splitters)</strong>
             <table class="table table-bordered table-hover">
                 <thead>
@@ -78,11 +78,12 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
                 </tbody>
             </table>
         </div>
-    </div>
 @endif
+        </div>
+        <div class="row">
 @if(isset($literals) && count($literals)>0)
-    <div class="row">
-        <div class="col-sm-6 col-sm-offset-3">
+
+        <div class="col-sm-6">
             <strong>Literāļu tabula (literals)</strong>
             <table class="table table-bordered table-hover">
                 <thead>
@@ -99,11 +100,11 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
                 </tbody>
             </table>
         </div>
-    </div>
+
 @endif
 @if(isset($variables) && count($variables)>0)
-    <div class="row">
-        <div class="col-sm-6 col-sm-offset-3">
+
+        <div class="col-sm-6">
             <strong>Mainīgo tabula (variables)</strong>
             <table class="table table-bordered table-hover">
                 <thead>
@@ -120,8 +121,11 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
                 </tbody>
             </table>
         </div>
-    </div>
+
 @endif
+        </div>
+    </div>
+</div>
 @if(isset($codeTable))
     <div class="row">
         <div class="col-sm-6 col-sm-offset-3">
@@ -135,7 +139,7 @@ $code = isset($_POST['code']) ? $_POST['code'] : "";
                 </thead>
                 <tbody>
                     @foreach($codeTable as $key => $value)
-                        <tr>
+                        <tr class="{{($value['type'] == 'error' ? 'alert-danger' : '')}}">
                             <td>{{$key}}</td>
                             <td>{{$value['element']}}</td>
                             <td>{{$value['type']}}</td>

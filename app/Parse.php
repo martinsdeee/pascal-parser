@@ -1,16 +1,40 @@
 <?php namespace app;
 
 
+/**
+ * Class Parse
+ * @package app
+ */
 class Parse {
 
+    /**
+     * @var
+     */
     protected $code;
 
+    /**
+     * @var
+     */
     protected $rawCode;
 
+    /**
+     * @var
+     */
     protected $rawCodeTable;
 
+    /**
+     * @var
+     */
     protected $codeTable;
 
+    /**
+     * @var
+     */
+    protected $tables;
+
+    /**
+     * @var array
+     */
     protected $errors = [];
 
     /**
@@ -22,7 +46,10 @@ class Parse {
     }
 
 
-    protected $patterns = [
+    /**
+     * @var array
+     */
+    public $patterns = [
         'for' => [
             'keyword',
             'variable',
@@ -39,39 +66,63 @@ class Parse {
         ]
     ];
 
+    /**
+     * @var array
+     */
     protected $language_keywords = [
         'procedure', 'TObject', 'var',
-        'set of char', 'char', 'string',
+        'set', 'of', 'char', 'string',
         'integer', 'begin', 'for', 'to',
         'do', 'if', 'in', 'then', 'else',
         'end'
     ];
 
+    /**
+     * @var array
+     */
     protected $language_splitters = [
         ':=', '.', '(', ')', ':', ';',
         ',', '[', ']', '=', '+',
         '-', '>', '<', '\''
     ];
 
+    /**
+     * @var array
+     */
     protected $reg_pattern = [
         '/:=/', '/\./', '/\(/', '/\)/', '/:/', '/;/',
         '/,/', '/\[/', '/\]/', '/\=/', '/\+/',
-        '/\-/', '/>/', '/</', '/\'/'
+        '/\-/', '/>/', '/</', '/\'/', '/\s+/', '/ : = /'
     ];
 
+    /**
+     * @var array
+     */
     protected $reg_replacement = [
         ' := ', ' . ', ' ( ', ' ) ', ' : ', ' ; ',
         ' , ', ' [ ', ' ] ', ' = ', ' + ',
-        ' - ', ' > ', ' < ', ' \' '
+        ' - ', ' > ', ' < ', ' \' ', ' ', ' := '
     ];
 
+    /**
+     * @var array
+     */
     protected $keywords = [];
 
 
+    /**
+     * @var array
+     */
     protected $splitters = [];
 
+    /**
+     * @var array
+     */
     protected $variables = [];
 
+    /**
+     * @var array
+     */
     protected $literals = [];
 
     /**
@@ -106,12 +157,15 @@ class Parse {
         return $this->literals;
     }
 
+    /**
+     * @param $code
+     */
     public function create($code)
     {
         $this->setCode($code);
         $this->setRaw($code);
         $this->setCodeTable($this->rawCode);
-        $this->createTypeTables($this->rawCodeTable);
+        $this->scanRawCode($this->rawCode);
         $this->checkSyntax($this->codeTable);
     }
 
@@ -133,16 +187,25 @@ class Parse {
         return $this->code;
     }
 
+    /**
+     * @return mixed
+     */
     public function getRawCode()
     {
         return $this->rawCode;
     }
 
+    /**
+     * @return mixed
+     */
     public function getCodeTable()
     {
         return $this->codeTable;
     }
 
+    /**
+     * @return mixed
+     */
     public function raw()
     {
         $pattern = $this->reg_pattern;
@@ -161,14 +224,17 @@ class Parse {
      */
     public function prepareRawCode($code, $pattern = [], $replacement = []) {
         // Pirms un pēc atdalītājiem saliek atstarpes
-        $code = preg_replace($pattern, $replacement, $code);
-        // Tiek izdzēsts WHITESPACES(TAB, NEWLINE, RETURN...)
+        // kā arī izdzēsts WHITESPACES(TAB, NEWLINE, RETURN...)
         // un novāktas visas atstarpe kas ir vairāk par vienu
-        $code = preg_replace('/\s+/',' ',$code);
-        $code = preg_replace('/: =/',':=',$code);
+        $code = preg_replace($pattern, $replacement, $code);
         return $code;
     }
 
+    /**
+     * Tiek izveidots masīvs no raw koda rindas
+     * @param $code
+     * @return array
+     */
     public function createCodeTable($code)
     {
         return explode(' ', $code);
@@ -182,106 +248,32 @@ class Parse {
         $this->rawCode = $this->raw($code);
     }
 
+    /**
+     * @param $rawCode
+     */
     private function setCodeTable($rawCode)
     {
         $this->rawCodeTable = $this->createCodeTable($rawCode);
     }
 
-    private function createTypeTables($rawCodeTable)
+     /**
+     * @param $type
+     * @param $chunk
+     * @return int|null|string
+     */
+    private function addAs($type,$chunk)
     {
-        $string = false;
-        $openStep = 0;
-        $i = 0;
-
-        foreach($rawCodeTable as $chunk)
-        {
-            $i++; // Soļu skaitītājs
-
-            // Pārbauda vai netiek atvērts brīvais teksts
-            if($chunk == "'" && !$string)
-            {
-                $string = true;
-                $openStep = $i;
-                $this->addAsSplitter($chunk);
-                $elementId = $this->getElementId($this->splitters, $chunk);
-                $this->addCodeTableAs('splitter', $chunk, $elementId);
-            }
-            // Pārbauda vai netiek aizvērts brīvais teksts
-            if ($chunk == "'" && $string && $openStep !== $i) {
-                $string = false;
-            }
-
-            // Pievieno kā literāli ja ir atvērts kā brīvais teksts
-            if($string == true && $openStep !== $i)
-            {
-                $this->addAsLiteral($chunk);
-                $elementId = $this->getElementId($this->literals, $chunk);
-                $this->addCodeTableAs('literal', $chunk, $elementId);
-            }
-
-            // Ja kods ir literālis un nav brīvais teksts
-            if($this->checkType($chunk) == 'literal' && !$string)
-            {
-                $this->addAsLiteral($chunk);
-                $elementId = $this->getElementId($this->literals, $chunk);
-                $this->addCodeTableAs('literal', $chunk, $elementId);
-            }
-
-            // Ja kods ir atslēgas vārds un nav brīvais teksts
-            if($this->checkType($chunk) == 'keyword' && !$string)
-            {
-                $this->addAsKeyword($chunk);
-                $elementId = $this->getElementId($this->keywords, $chunk);
-                $this->addCodeTableAs('keyword', $chunk, $elementId);
-            }
-
-            // Ja kods ir atdalītājs un nav brīvais teksts
-            if($this->checkType($chunk) == 'splitter' && !$string)
-            {
-                $this->addAsSplitter($chunk);
-                $elementId = $this->getElementId($this->splitters, $chunk);
-                $this->addCodeTableAs('splitter', $chunk, $elementId);
-            }
-
-            // Ja kods ir mainīgais un nav brīvais teksts
-            if($this->checkType($chunk) == 'variable' && !$string && $chunk !== "")
-            {
-                $this->addAsVariable($chunk);
-                $elementId = $this->getElementId($this->variables, $chunk);
-                $this->addCodeTableAs('variable', $chunk, $elementId);
-            }
+        $type = $type."s";
+        if(is_null($this->getElementId($this->$type, $chunk))) {
+            array_push($this->$type, $chunk);
         }
-
+        return $this->getElementId($this->$type, $chunk);
     }
 
-    private function addAsLiteral($chunk)
-    {
-        if(is_null($this->getElementId($this->literals, $chunk))) {
-            $this->literals[] = $chunk;
-        }
-    }
-
-    private function addAsKeyword($chunk)
-    {
-        if(is_null($this->getElementId($this->keywords, $chunk))) {
-            $this->keywords[] = $chunk;
-        }
-    }
-
-    private function addAsSplitter($chunk)
-    {
-        if(is_null($this->getElementId($this->splitters, $chunk))) {
-            $this->splitters[] = $chunk;
-        }
-    }
-
-    private function addAsVariable($chunk)
-    {
-        if(is_null($this->getElementId($this->variables, $chunk))) {
-            $this->variables[] = $chunk;
-        }
-    }
-
+    /**
+     * @param $chunk
+     * @return string
+     */
     public function checkType($chunk)
     {
         // Ja atslēgas vārds
@@ -303,9 +295,15 @@ class Parse {
             return 'literal';
         }
 
-        return 'variable';
+        return null;
     }
 
+    /**
+     * Tiek atgriezta elementa id no tabulas kurā, tas atrodas
+     * @param $table
+     * @param $chunk
+     * @return int|null|string
+     */
     public function getElementId($table, $chunk)
     {
         foreach($table as $key => $value)
@@ -317,27 +315,209 @@ class Parse {
         return null;
     }
 
-    private function addCodeTableAs($string, $chunk, $elementId)
+    /**
+     * @param $string
+     * @param $chunk
+     * @param $elementId
+     * @param string $status
+     */
+    private function addCodeTableAs($string, $chunk, $elementId, $status = "Ok")
     {
         $this->codeTable[] = [
             'element' => $chunk,
             'type' => $string,
-            'type_id' => $elementId
+            'type_id' => $elementId,
+            'status' => $status,
         ];
     }
 
+    /**
+     * @param $codeTable
+     */
     private function checkSyntax($codeTable)
     {
-        $i = 0;
-        $j = 0;
-        // Hard coded for my lab example
-        foreach($this->patterns['for'] as $value)
+        // Noteikumi FOR sintakses analizātoram
+        $rules = [
+            ["key" => "element", "value" => "for"], // for
+            ["key" => "type", "value" => "variable"], // ID
+            ["key" => "element", "value" => ":="], // :=
+            ["key" => "type", "value" => "variable"], // ID
+            ["key" => "element", "value" => "to"], // to
+            ["key" => "type", "value" => "variable"], // ID
+            ["key" => "element", "value" => "."], // .
+            ["key" => "type", "value" => "variable"], // ID
+            ["key" => "element", "value" => "."], // .
+            ["key" => "type", "value" => "variable"], // ID
+            ["key" => "element", "value" => "-"], // -
+            ["key" => "type", "value" => "literal"], // INT
+            ["key" => "element", "value" => "do"], // do
+            ["key" => "type", "value" => "variable"], // ID
+            ["key" => "element", "value" => ":="], // :=
+            ["key" => "type", "value" => "variable"], // ID
+            ["key" => "element", "value" => "+"], // +
+            ["key" => "type", "value" => "variable"], // ID
+            ["key" => "element", "value" => "."], // .
+            ["key" => "type", "value" => "variable"], // ID
+            ["key" => "element", "value" => "["], // [
+            ["key" => "type", "value" => "variable"], // ID
+            ["key" => "element", "value" => "]"], // ]
+            ["key" => "element", "value" => ";"], // ;
+        ];
+
+        $c = $this->codeTable;
+        for($i=0; $i <= count($c)-1; $i++)
         {
-            if($value !== $codeTable[$i]['type'])
-            {
-                $this->errors[] = "syntax error in $i step";
+            if($c[$i]['element'] == "for") {
+                for ($j = 0; $j <= count($rules) - 1; $j++) {
+                    if (isset($c[$i]) and $c[$i][$t = $rules[$j]["key"]] !== $r = $rules[$j]["value"]){
+                        $ir = $c[$i][$t = $rules[$j]["key"]];
+                        $this->errors[] = "Sintakses kļūda $i. solī, \"$t\" jābūt \"$r\", bet ir \"$ir\"";
+                    }
+                    $i++;
+                }
+            }
+        }
+
+
+
+    }
+
+    /**
+     * Scan Raw Code
+     * @param $rawCodeTable
+     */
+    private function scanRawCode($c)
+    {
+        $i = 0;
+        $string = false;
+
+        while($i < strlen($c))
+        {
+            $lexem = '';
+            $type = ''; // INT, ID, LIT, DELIM, ERROR
+            $table = '';
+
+            $step = 0;
+
+            while($c[$i] !== " "){
+
+                if($type == '' && ctype_digit($c[$i]) && $string == false)
+                    $type = 'INT';
+
+                if($type == '' && ctype_alpha($c[$i]) && $string == false)
+                    $type = 'ID';
+
+                if($type == '' && $c[$i] == "'" && $string == false)
+                {
+                    $step = $i;
+                    $string = true;
+                    $type = 'DELIM';
+                }
+
+                if($type == '' && $c[$i] == "'" && $string == true)
+                {
+                    $string = false;
+                    $type = 'DELIM';
+                }
+
+
+                if($type == '' && $this->checkType($c[$i]) == 'splitter' && $string == false)
+                {
+                    $type = 'DELIM';
+                }
+
+                if($type !== 'LITERAL' && $this->checkType($c[$i]) !== 'splitter' && $string == false && ctype_punct($c[$i]))
+                {
+                    $type = 'ERROR';
+                }
+
+                // Create Lexems
+
+                // Literals
+                if($type == 'INT' && ctype_digit($c[$i]) && $string == false)
+                {
+                    $type = 'INT';
+                    $lexem = $lexem . $c[$i];
+                }
+
+                if($string == true && $step !== $i)
+                {
+                    $type = 'LIT';
+                    $lexem = $lexem . $c[$i];
+                }
+
+                // Keywords or Variables
+                if($type == 'ID' && ctype_alnum($c[$i]) && $string == false)
+                {
+                    $type = 'ID';
+                    $lexem = $lexem . $c[$i];
+                }
+
+                // Splitters
+                if($type == 'DELIM' && $this->checkType($c[$i]) == 'splitter')
+                {
+                    $type = 'DELIM';
+                    $lexem = $lexem . $c[$i];
+                }
+
+                // Error
+                if($type == 'INT' && ctype_alpha($c[$i]) && $string == false)
+                {
+                    $type = 'ERROR';
+                }
+
+                if($type == 'ERROR')
+                {
+                    $type = 'ERROR';
+                    $lexem = $lexem . $c[$i];
+                }
+
+
+                $i++;
+            }
+
+            // Add in tables
+
+            if($lexem !== "" && $type == "INT") {
+                $table = 'literal';
+                $elementId = $this->addAs($table, $lexem);
+                $this->addCodeTableAs($table, $lexem, $elementId);
+            }
+
+            if($lexem !== "" && $type == "LIT") {
+                $table = 'literal';
+                $elementId = $this->addAs($table, $lexem);
+                $this->addCodeTableAs($table, $lexem, $elementId);
+            }
+
+            if($lexem !== "" && $type == "DELIM") {
+                $table = 'splitter';
+                $elementId = $this->addAs($table, $lexem);
+                $this->addCodeTableAs($table, $lexem, $elementId);
+            }
+
+            if($lexem !== "" && $type == "ERROR") {
+                $table = 'error';
+                $this->addCodeTableAs($table, $lexem, $elementId, "Error");
+                $step = count($this->codeTable)-1;
+                $error = "Leksikas kļūda $step. solī, \"$lexem\" ";
+                $elementId = $this->addAs($table, $error);
+            }
+
+            if($lexem !== "" && $type == "ID") {
+                if($this->checkType($lexem) == 'keyword') {
+                    $table = 'keyword';
+                    $elementId = $this->addAs($table, $lexem);
+                    $this->addCodeTableAs($table, $lexem, $elementId);
+                } else {
+                    $table = 'variable';
+                    $elementId = $this->addAs($table, $lexem);
+                    $this->addCodeTableAs($table, $lexem, $elementId);
+                }
+
             }
             $i++;
+
         }
     }
 
